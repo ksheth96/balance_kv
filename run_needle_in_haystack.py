@@ -567,13 +567,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--s_len', metavar='N', default=1024, type=int, help='a number')
     parser.add_argument('-e', '--e_len', metavar='N', default=819200000, type=int, help='a number')
-    parser.add_argument('--model_name', type=str, default="meta-llama/Llama-3.1-8B-Instruct", help='name of model')
+    parser.add_argument('--model_name', type=str, default="/home/ma-user/work/bucket-wulan-green/zhaoyusheng/checkpoints/Qwen/Qwen3-1.7B-Base/", help='name of model')
     parser.add_argument('--kv_type', type=str, default="exact")
     parser.add_argument("--use_fast_tokenizer", type=bool, default=True, help="")
     parser.add_argument("--attn_implementation", type=str,  default="flash_attention_2", choices=["flash_attention_2", "sdpa", "None"])
-    parser.add_argument('--model_version', type=str, default="llama-3.1-8b-instruct", help='provider of model')
+    parser.add_argument('--model_version', type=str, default="qwen3-1.7b-base", help='provider of model')
     parser.add_argument('--model_name_suffix', type=str, default=None, help='name of model')
-    parser.add_argument('--model_provider', type=str, default="LLaMA3", help='which model to use')
+    parser.add_argument('--model_provider', type=str, default="Qwen", help='which model to use')
     parser.add_argument('--api_key', type=str, default="", help='OpenAI API Key')
     parser.add_argument('--step', type=int, default=1000)
     parser.add_argument('--max_capacity_prompts', type=int, default=128)
@@ -611,7 +611,7 @@ if __name__ == "__main__":
     set_seed(args.seed)
 
     model_name = args.model_name
-    real_model_name = model_name.split("/")[-1]
+    real_model_name = model_name.rstrip("/").split("/")[-1]
     exp_name = f"{real_model_name}_{args.kv_type}"
     if args.kv_type == 'kivi':
         exp_name += f"_g{args.group_size}_b{args.bits}_r{args.residual_length}"

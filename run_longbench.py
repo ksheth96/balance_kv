@@ -168,7 +168,8 @@ def reset_logging():
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str,
-                        default="meta-llama/Llama-3.1-8B-Instruct")
+                        default="/home/ma-user/work/bucket-wulan-green/zhaoyusheng/checkpoints/Qwen/Qwen3-1.7B-Base/")
+    # parser.add_argument('--model_name', type=str, default="meta-llama/Llama-3.1-8B-Instruct")
     # parser.add_argument('--model_name', type=str, default="Qwen/Qwen2.5-14B-Instruct")
     # "THUDM/chatglm3-6b-32k")
     #
@@ -246,7 +247,7 @@ def main():
     print(f"model_name: {args.model_name}")
 
     model_name = args.model_name
-    real_model_name = model_name.split("/")[-1]
+    real_model_name = model_name.rstrip("/").split("/")[-1]
 
     exp_name = f"{real_model_name}_{args.kv_type}"
     if args.kv_type == 'kivi':
@@ -328,7 +329,8 @@ def main():
         #         model.model.layers[i].self_attn.is_sliding = False
         if 'qwen' in model_name.lower():
             model._supports_num_logits_to_keep = model._supports_logits_to_keep
-            model.config.head_dim = 128
+            if getattr(model.config, "head_dim", None) is None:
+                model.config.head_dim = model.config.hidden_size // model.config.num_attention_heads
 
         tokenizer = AutoTokenizer.from_pretrained(
             model_name, trust_remote_code=True)
@@ -414,7 +416,11 @@ def main():
                     messages,  add_generation_prompt=True, tokenize=True, return_dict=True)
                 input_text = inputs['input_ids']
             elif 'qwen' in model_name.lower():
-                if dataset not in ["gov_report", "multi_news", "trec", "triviaqa", "samsum", 'lcc', 'repobench-p']:
+                if 'base' in model_name.lower():
+                    # base checkpoints are not instruction-tuned; feed the raw prompt
+                    # text as a continuation, same as the other base LMs above.
+                    pass
+                elif dataset not in ["gov_report", "multi_news", "trec", "triviaqa", "samsum", 'lcc', 'repobench-p']:
                     messages = [
                         {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
                         {"role": "user", "content": input_text}
@@ -500,16 +506,8 @@ def main():
                 import pdb
                 pdb.set_trace()
 
-            if 'llama' in args.model_name.lower() or 'mistral' in args.model_name.lower() or 'gemma' in args.model_name.lower():
-                kv_cache_size_ori = 2 * (outputs.shape[-1]-1) * model.config.num_hidden_layers * \
-                    model.config.head_dim * model.config.num_key_value_heads * 2
-            elif 'qwen' in args.model_name.lower():
-                kv_cache_size_ori = 2 * (outputs.shape[-1]-1) * model.config.num_hidden_layers * (
-                    model.config.hidden_size / model.config.num_attention_heads) * 2
-                model.config.head_dim = 128
-            else:
-                import pdb
-                pdb.set_trace()
+            kv_cache_size_ori = 2 * (outputs.shape[-1]-1) * model.config.num_hidden_layers * \
+                model.config.head_dim * model.config.num_key_value_heads * 2
 
             if cnt == 0:
                 print(
