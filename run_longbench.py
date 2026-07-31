@@ -246,7 +246,7 @@ def main():
     print(f"model_name: {args.model_name}")
 
     model_name = args.model_name
-    real_model_name = model_name.split("/")[-1]
+    real_model_name = model_name.rstrip("/").split("/")[-1]
 
     exp_name = f"{real_model_name}_{args.kv_type}"
     if args.kv_type == 'kivi':
@@ -415,7 +415,11 @@ def main():
                     messages,  add_generation_prompt=True, tokenize=True, return_dict=True)
                 input_text = inputs['input_ids']
             elif 'qwen' in model_name.lower():
-                if dataset not in ["gov_report", "multi_news", "trec", "triviaqa", "samsum", 'lcc', 'repobench-p']:
+                if 'base' in model_name.lower():
+                    # base checkpoints are not instruction-tuned; feed the raw prompt
+                    # text as a continuation, same as the other base LMs above.
+                    pass
+                elif dataset not in ["gov_report", "multi_news", "trec", "triviaqa", "samsum", 'lcc', 'repobench-p']:
                     messages = [
                         {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
                         {"role": "user", "content": input_text}

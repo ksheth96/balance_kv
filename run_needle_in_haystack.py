@@ -611,7 +611,7 @@ if __name__ == "__main__":
     set_seed(args.seed)
 
     model_name = args.model_name
-    real_model_name = model_name.split("/")[-1]
+    real_model_name = model_name.rstrip("/").split("/")[-1]
     exp_name = f"{real_model_name}_{args.kv_type}"
     if args.kv_type == 'kivi':
         exp_name += f"_g{args.group_size}_b{args.bits}_r{args.residual_length}"
