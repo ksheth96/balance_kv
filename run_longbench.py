@@ -328,7 +328,8 @@ def main():
         #         model.model.layers[i].self_attn.is_sliding = False
         if 'qwen' in model_name.lower():
             model._supports_num_logits_to_keep = model._supports_logits_to_keep
-            model.config.head_dim = 128
+            if getattr(model.config, "head_dim", None) is None:
+                model.config.head_dim = model.config.hidden_size // model.config.num_attention_heads
 
         tokenizer = AutoTokenizer.from_pretrained(
             model_name, trust_remote_code=True)
@@ -500,16 +501,8 @@ def main():
                 import pdb
                 pdb.set_trace()
 
-            if 'llama' in args.model_name.lower() or 'mistral' in args.model_name.lower() or 'gemma' in args.model_name.lower():
-                kv_cache_size_ori = 2 * (outputs.shape[-1]-1) * model.config.num_hidden_layers * \
-                    model.config.head_dim * model.config.num_key_value_heads * 2
-            elif 'qwen' in args.model_name.lower():
-                kv_cache_size_ori = 2 * (outputs.shape[-1]-1) * model.config.num_hidden_layers * (
-                    model.config.hidden_size / model.config.num_attention_heads) * 2
-                model.config.head_dim = 128
-            else:
-                import pdb
-                pdb.set_trace()
+            kv_cache_size_ori = 2 * (outputs.shape[-1]-1) * model.config.num_hidden_layers * \
+                model.config.head_dim * model.config.num_key_value_heads * 2
 
             if cnt == 0:
                 print(

@@ -70,6 +70,10 @@ def manual_forward_llama(
     if int(transformers.__version__.split(".")[1]) >= 48:
         position_embeddings = model.model.rotary_emb(hh, position_ids)
 
+    num_kv_heads = model.config.num_key_value_heads
+    head_dim = getattr(model.config, "head_dim", None) or (
+        model.config.hidden_size // model.config.num_attention_heads)
+
     past_kv_cache = []
     for i, decoder_layer in enumerate(model.model.layers):
         # hh = decoder_layer(hh, position_ids=position_ids)[0]
@@ -81,11 +85,18 @@ def manual_forward_llama(
         q_len = hh.shape[1]
         kv_len = q_len
         qq = decoder_layer.self_attn.q_proj(hh).reshape(
-            1, q_len, -1, 128).transpose(1, 2)
+            1, q_len, -1, head_dim)
         kk = decoder_layer.self_attn.k_proj(hh).reshape(
-            1, kv_len, 8, 128).transpose(1, 2)
+            1, kv_len, num_kv_heads, head_dim)
         vv = decoder_layer.self_attn.v_proj(hh).reshape(
-            1, kv_len, 8, 128).transpose(1, 2)
+            1, kv_len, num_kv_heads, head_dim).transpose(1, 2)
+
+        # Qwen3-style QK-norm applies RMSNorm on the head_dim axis before RoPE.
+        if hasattr(decoder_layer.self_attn, 'q_norm'):
+            qq = decoder_layer.self_attn.q_norm(qq)
+            kk = decoder_layer.self_attn.k_norm(kk)
+        qq = qq.transpose(1, 2)
+        kk = kk.transpose(1, 2)
 
         if int(transformers.__version__.split(".")[1]) >= 48:
             cos, sin = position_embeddings
@@ -211,6 +222,10 @@ def manual_forward_llama_needle_detection(
     if int(transformers.__version__.split(".")[1]) >= 48:
         position_embeddings = model.model.rotary_emb(hh, position_ids)
 
+    num_kv_heads = model.config.num_key_value_heads
+    head_dim = getattr(model.config, "head_dim", None) or (
+        model.config.hidden_size // model.config.num_attention_heads)
+
     needle_mask = None
     past_kv_cache = []
     num_layers = len(model.model.layers)
@@ -220,9 +235,16 @@ def manual_forward_llama_needle_detection(
 
         q_len = hh.shape[1]
         kv_len = q_len
-        qq = decoder_layer.self_attn.q_proj(hh).reshape(1, q_len, -1, 128).transpose(1, 2)
-        kk = decoder_layer.self_attn.k_proj(hh).reshape(1, kv_len, 8, 128).transpose(1, 2)
-        vv = decoder_layer.self_attn.v_proj(hh).reshape(1, kv_len, 8, 128).transpose(1, 2)
+        qq = decoder_layer.self_attn.q_proj(hh).reshape(1, q_len, -1, head_dim)
+        kk = decoder_layer.self_attn.k_proj(hh).reshape(1, kv_len, num_kv_heads, head_dim)
+        vv = decoder_layer.self_attn.v_proj(hh).reshape(1, kv_len, num_kv_heads, head_dim).transpose(1, 2)
+
+        # Qwen3-style QK-norm applies RMSNorm on the head_dim axis before RoPE.
+        if hasattr(decoder_layer.self_attn, 'q_norm'):
+            qq = decoder_layer.self_attn.q_norm(qq)
+            kk = decoder_layer.self_attn.k_norm(kk)
+        qq = qq.transpose(1, 2)
+        kk = kk.transpose(1, 2)
 
         if int(transformers.__version__.split(".")[1]) >= 48:
             cos, sin = position_embeddings
