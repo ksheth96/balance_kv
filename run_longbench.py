@@ -168,7 +168,8 @@ def reset_logging():
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str,
-                        default="meta-llama/Llama-3.1-8B-Instruct")
+                        default="/home/ma-user/work/bucket-wulan-green/zhaoyusheng/checkpoints/Qwen/Qwen3-1.7B-Base/")
+    # parser.add_argument('--model_name', type=str, default="meta-llama/Llama-3.1-8B-Instruct")
     # parser.add_argument('--model_name', type=str, default="Qwen/Qwen2.5-14B-Instruct")
     # "THUDM/chatglm3-6b-32k")
     #
